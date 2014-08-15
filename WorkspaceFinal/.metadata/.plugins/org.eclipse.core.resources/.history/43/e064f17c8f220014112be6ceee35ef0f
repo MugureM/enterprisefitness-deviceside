@@ -1,0 +1,101 @@
+package microsoft.servicebus.activizeprovider.service;
+
+import javax.jms.*;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+import java.util.Hashtable;
+import java.util.Random;
+
+public class EventHubSender implements MessageListener {
+	
+
+
+	private static Connection connection;
+    private static Session sendSession;
+    private static MessageProducer sender;
+    private static Random randomGenerator = new Random();
+    
+	private EventHubSender() {
+		
+	}
+	
+	
+	
+
+    /* public static void main(String[] args) {
+        try {
+            EventHubSender sender = new EventHubSender();
+            DeviceEmulator emulator = new DeviceEmulator(); 
+            emulator.createDevices(); 
+            
+            for (String device : emulator.mockPedometer) {
+            	sender.sendMessage(device);
+            }
+            
+            sender.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    } */
+
+    public static void sendMessage(String input) throws JMSException {
+    	
+        // Configure JNDI environment
+        Hashtable<String, String> env = new Hashtable<String, String>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, 
+                "org.apache.qpid.amqp_1_0.jms.jndi.PropertiesFileInitialContextFactory");
+        env.put(Context.PROVIDER_URL, "config.properties");
+        Context context = null;
+		try {
+			context = new InitialContext(env);
+		} catch (NamingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+            // Lookup ConnectionFactory and Queue
+            ConnectionFactory cf = null;
+			try {
+				cf = (ConnectionFactory) context.lookup("EHPubisher");
+			} catch (NamingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            Destination queue = null;
+			try {
+				queue = (Destination) context.lookup("EHSend");
+			} catch (NamingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+            // Create Connection
+            connection = cf.createConnection();
+
+            // Create sender-side Session and MessageProducer
+            sendSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            sender = sendSession.createProducer(queue);
+
+        // Create sender-side Session and MessageProducer
+        sendSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        sender = sendSession.createProducer(queue);
+        TextMessage message = sendSession.createTextMessage();
+        message.setText(input);
+        long randomMessageID = randomGenerator.nextLong() >>> 1;
+        message.setJMSMessageID("ID:" + randomMessageID);
+        sender.send(message);
+        System.out.println("Sent = " + message.getText());
+    }
+
+    public void close() throws JMSException {
+        connection.close();
+    }
+
+	public void onMessage(Message arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+}
+    

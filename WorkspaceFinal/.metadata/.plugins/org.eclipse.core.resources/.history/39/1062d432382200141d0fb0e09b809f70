@@ -1,0 +1,5 @@
+package microsoft.servicebus.activizeprovider.service;
+
+public class WatchData {
+
+}
